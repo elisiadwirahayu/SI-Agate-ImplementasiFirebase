@@ -25,6 +25,7 @@ public class GameManager : MonoBehaviour
     [Range(0f, 1f)]
 
     public float AutoCollectPercentage = 0.1f;
+    public float SaveDelay = 5f;
     public ResourceConfig[] ResourcesConfigs;
     public Sprite[] ResourcesSprites;
     public Transform ResourcesParent;
@@ -38,19 +39,22 @@ public class GameManager : MonoBehaviour
     private List<TapText> _tapTextPool = new List<TapText>();
 
     private float _collectSecond;
-    public double TotalGold { get; private set; }
+    private float _saveDelayCounter;
 
     private void Start()
     {
         AddAllResources();
+
         GoldInfo.text = $"Gold: { UserDataManager.Progress.Gold.ToString("0") }";
     }
     
     private void Update()
     {
-        // Fungsi untuk selalu mengeksekusi CollectPerSecond setiap detik 
+        float deltaTime = Time.unscaledDeltaTime;
+        _saveDelayCounter -= deltaTime;
 
-        _collectSecond += Time.unscaledDeltaTime;
+        // Fungsi untuk selalu mengeksekusi CollectPerSecond setiap detik
+        _collectSecond += deltaTime;
 
         if (_collectSecond >= 1f)
         {
@@ -69,6 +73,7 @@ public class GameManager : MonoBehaviour
     private void AddAllResources()
     {
         bool showResources = true;
+
         int index = 0;
 
         foreach (ResourceConfig config in ResourcesConfigs)
@@ -76,7 +81,7 @@ public class GameManager : MonoBehaviour
             GameObject obj = Instantiate(ResourcePrefab.gameObject, ResourcesParent, false);
 
             ResourceController resource = obj.GetComponent<ResourceController>();
-
+            
             resource.SetConfig(index, config);
 
             obj.gameObject.SetActive(showResources);
@@ -152,7 +157,12 @@ public class GameManager : MonoBehaviour
 
         GoldInfo.text = $"Gold: { UserDataManager.Progress.Gold.ToString("0") }";
 
-        UserDataManager.Save();
+        UserDataManager.Save(_saveDelayCounter < 0f);
+        
+        if (_saveDelayCounter < 0f)
+        {
+            _saveDelayCounter = SaveDelay;
+        }
     }
 
     public void CollectByTap(Vector3 tapPosition, Transform parent)
